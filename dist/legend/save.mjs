@@ -78,13 +78,13 @@ export const loadGame = () => sanitize(read(SAVE_KEY)) || OLD_SAVE_KEYS.reduce((
 export const saveGame = s => write(SAVE_KEY, s);
 export const clearGame = () => { try { store()?.removeItem(SAVE_KEY); } catch { /* storage unavailable */ } };
 
-export const DEFAULT_SETTINGS = { quality: 'auto', music: 0.6, sfx: 0.8, sensitivity: 1, invertY: false, autoCam: true, reducedMotion: false, textSize: 1, subtitlesSlow: false, smartChat: false, photoFace: true };
+export const DEFAULT_SETTINGS = { quality: 'auto', music: 0.6, sfx: 0.8, sensitivity: 1, invertY: false, autoCam: true, reducedMotion: false, textSize: 1, subtitlesSlow: false, smartChat: false, photoFace: true, playOnline: true };
 export function loadSettings() {
   const r = read(SETTINGS_KEY) || {}, d = DEFAULT_SETTINGS;
   return { quality: ['auto', 'low', 'medium', 'high'].includes(r.quality) ? r.quality : d.quality,
     music: num(r.music, 0, 1, d.music), sfx: num(r.sfx, 0, 1, d.sfx), sensitivity: num(r.sensitivity, 0.3, 2.5, d.sensitivity),
     invertY: r.invertY === true, autoCam: r.autoCam !== false, reducedMotion: r.reducedMotion === true,
-    textSize: num(r.textSize, 0.9, 1.4, d.textSize), subtitlesSlow: r.subtitlesSlow === true, smartChat: r.smartChat === true, photoFace: r.photoFace !== false };
+    textSize: num(r.textSize, 0.9, 1.4, d.textSize), subtitlesSlow: r.subtitlesSlow === true, smartChat: r.smartChat === true, photoFace: r.photoFace !== false, playOnline: r.playOnline !== false };
 }
 export const saveSettings = s => write(SETTINGS_KEY, s);
 

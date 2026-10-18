@@ -1,16 +1,21 @@
-# Testing Shellbound on phones with friends and family
+# Playing Shellbound on phones with friends and family
 
-## Option A — the shared Claude link (multiplayer works)
-1. Open the game link on the computer and use **Share** (top right of the page) to invite each tester by email. They need to be signed in to Claude on their phone.
-2. Testers open the link in the phone browser (Chrome on Android, Safari on iPhone). Turn the phone sideways and tap ⛶ for full screen where the phone allows it.
-3. Everyone who has the game open appears in the same village. Swap friend codes in the Friends chat (✉ → Friends) to chat and invite each other.
-4. Only Contributors and above can send chat, friend requests, invites and waves. Viewers can watch but not send, so share with at least Contributor access.
+## One link for everyone
+**https://holumayour15.github.io/shellbound-sky-feast/**
 
-## Option B — host the files yourself (single player, no Claude account needed)
-Upload the `dist/` folder to any static host (Netlify Drop, GitHub Pages, Cloudflare Pages) and send the link. On a phone, "Add to Home Screen" installs it like an app (it uses `manifest.webmanifest`). Friends, chat and the shared world need the Claude runtime, so they are switched off in this version; everything else works.
+1. Open the link in Chrome (Android) or Safari (iPhone). No account is needed.
+2. Turn the phone sideways. Tap ⛶ for full screen where the phone allows it.
+3. Optional: install it like an app — Safari: Share → **Add to Home Screen**; Chrome: ⋮ → **Add to Home screen**.
 
-## What to ask testers
-- Is it smooth? (If not: pause → Settings → Graphics quality → Low.)
-- Can you reach every button with your thumbs? Is any text too small (Settings → Text size)?
-- Did you understand fishing, cooking and the bike loop without help?
-- Did anything feel unfair or confusing with other players?
+Everyone who has the game open appears in the same village with a name tag.
+- **Wave or high-five:** walk up to a player and tap **Act**.
+- **Become friends:** tap ✉ → **Friends**. Your 6-letter **friend code** is at the top. Swap codes, type your friend's code into **Add friend**, and they tap **Accept**.
+- **Friends only:** chat with each other in the Friends tab, and tap **Invite** to play together.
+
+Strangers can only wave or send a friend request; chat and invites are for accepted friends only.
+
+## Good to know
+- Online play connects phones directly to each other, so other players' devices can see your internet address (like most online games). You can switch it off: Ⅱ → Settings → "Play online with other players".
+- Wi-Fi works best. Some mobile networks block direct connections; if you can't see each other, try Wi-Fi.
+- Each person's progress, friends and selfie are saved on their own phone.
+- Laggy? Ⅱ → Settings → Graphics quality → Low. No sound? Tap the screen once and check silent mode.

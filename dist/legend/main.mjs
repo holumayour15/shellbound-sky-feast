@@ -715,7 +715,7 @@ function renderChat() {
 function renderFriends(fr) {
   const sys = HEROES.map(h => { const on = friendOnline[h.id], st = summonState(friends[h.id]).state; return `<span class="fr ${on ? 'on' : ''}"><i></i>${h.name}${stageId() !== 'child' && on ? ` <button data-call="${h.id}" ${st === 'come' ? '' : 'disabled'} title="Call ${h.name} to help">Call</button>` : ''}</span>`; }).join('');
   let real = '';
-  if (!social) real = '<p class="note">Real friends: open the game from its shared link while signed in to add friends with a friend code and invite them to play.</p>';
+  if (!social) real = `<p class="note">${CHAT.p2p ? 'Connecting to other players… if this stays, your network may block online play — try Wi-Fi.' : settings.playOnline === false && !window.claude ? 'Online play is switched off in Settings.' : 'Real friends: open the game from its shared link while signed in to add friends with a friend code and invite them to play.'}</p>`;
   else {
     const SO = social.S, list = social.onlineFriends(), ps = social.players().filter(pl => !social.isFriend(pl.code));
     real = `<div class="fr-real"><p class="fr-code">Your friend code <b>${SO.code || '…'}</b> <button class="mini" id="frCopy" type="button">Copy</button></p>
@@ -725,7 +725,7 @@ function renderFriends(fr) {
       ${list.length ? list.map(f => `<div class="fr-row"><span class="fr ${f.online ? 'on' : ''}"><i></i>${esc(f.name)} <small>${f.online ? (f.online.party && f.online.party === SO.party ? 'in your game' : 'online') : 'offline'}</small></span>${f.online && f.online.party !== SO.party ? `<button class="mini gold" data-inv="${f.code}">Invite</button>` : ''}<button class="mini" data-rem="${f.code}" title="Remove friend">✕</button></div>`).join('') : '<p class="note">No real friends yet. Swap friend codes with someone you know, then add them here.</p>'}
       ${SO.party ? `<div class="fr-row"><span>🎮 Playing together: ${social.partyMembers().length + 1} player${social.partyMembers().length ? 's' : ''}</span><button class="mini" id="frLeave">Leave</button></div>` : ''}
       ${ps.length ? `<p class="note">Also playing now: ${ps.map(pl => `${esc(pl.name)} <button class="mini" data-req="${pl.code}">Add</button>`).join(' · ')}</p>` : ''}
-      <p class="note">Only friends who accepted your request can chat with you or invite you. Never share your real name, school or address.</p></div>`;
+      <p class="note">Only friends who accepted your request can chat with you or invite you. Never share your real name, school or address.${CHAT.p2p ? ' Online play connects your phone directly to other players’ phones, so they can see its internet address; turn it off in Settings if you prefer.' : ''}</p></div>`;
   }
   fr.innerHTML = `<div class="fr-sys">${sys}</div>${real}`;
   fr.querySelectorAll('[data-call]').forEach(b => b.onclick = () => { closeChat(); callFriend(b.dataset.call); });
@@ -825,9 +825,16 @@ async function answer(ch, who, text) {
 let social = null, partyT = 0;
 const party = new Map();
 async function initOnline() {
-  if (!window.claude?.use) return;
-  claude.use('sample').then(fn => { if (!fn) return; CHAT.sample = fn; $('smartRow').hidden = false; $('chatSmart').checked = settings.smartChat; renderSelfie(); }).catch(() => {});
-  Promise.all([claude.use('room'), claude.use('user').catch(() => null)]).then(([room, user]) => {
+  let online;
+  if (window.claude?.use) {
+    claude.use('sample').then(fn => { if (!fn) return; CHAT.sample = fn; $('smartRow').hidden = false; $('chatSmart').checked = settings.smartChat; renderSelfie(); }).catch(() => {});
+    online = Promise.all([claude.use('room'), claude.use('user').catch(() => null)]);
+  } else if (settings.playOnline !== false) {
+    // Outside Claude (the GitHub Pages link): direct phone-to-phone play.
+    CHAT.p2p = true;
+    online = import('./p2p.mjs').then(m => m.createP2P()).then(p => p ? [p.room, p.user] : [null, null]).catch(e => { console.warn('Online play unavailable', e); return [null, null]; });
+  } else return;
+  online.then(([room, user]) => {
     if (!room) return; CHAT.room = room;
     social = createSocial(room, user, {
       friends: () => realFriends, setFriends: list => { realFriends = list; saveFriends(list); },
@@ -1659,7 +1666,8 @@ function openSettings() {
     <label class="setting"><span>Camera follows movement</span><input id="sA" type="checkbox" ${s.autoCam ? 'checked' : ''}></label>
     <label class="setting"><span>Reduce motion (no shake or ripples)</span><input id="sR" type="checkbox" ${s.reducedMotion ? 'checked' : ''}></label>
     <label class="setting"><span>Text size</span><input id="sT" type="range" min="0.9" max="1.4" step="0.05" value="${s.textSize}"></label>
-    <label class="setting"><span>Slower dialogue text</span><input id="sD" type="checkbox" ${s.subtitlesSlow ? 'checked' : ''}></label>`, () => {
+    <label class="setting"><span>Slower dialogue text</span><input id="sD" type="checkbox" ${s.subtitlesSlow ? 'checked' : ''}></label>
+    ${window.claude ? '' : `<label class="setting"><span>Play online with other players (reload to apply)</span><input id="sO" type="checkbox" ${s.playOnline !== false ? 'checked' : ''}></label>`}`, () => {
     const on = (id, fn) => $(id).addEventListener('input', e => { fn(e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? +e.target.value : e.target.value); saveSettings(settings); });
     on('sQ', v => { settings.quality = v; qualityLocked = v !== 'auto'; applyQuality(); });
     on('sM', v => { settings.music = v; audio.setVolumes(settings.music, settings.sfx); });
@@ -1667,6 +1675,7 @@ function openSettings() {
     on('sC', v => { settings.sensitivity = v; }); on('sI', v => { settings.invertY = v; }); on('sA', v => { settings.autoCam = v; });
     on('sR', v => { settings.reducedMotion = v; }); on('sT', v => { settings.textSize = v; document.documentElement.style.setProperty('--ts', v); });
     on('sD', v => { settings.subtitlesSlow = v; });
+    if ($('sO')) on('sO', v => { settings.playOnline = v; });
   });
 }
 function openBoard(highlight = -1) {

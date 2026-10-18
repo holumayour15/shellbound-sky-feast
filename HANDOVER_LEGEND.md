@@ -144,3 +144,13 @@ Fish and dishes sell at a new Sell tab in Mama Nkem's stall. The prizes are a st
   - The photo stays on the device; other players see the cartoon face.
 
 **Verified:** `npm test` passes. In Chromium: a drawn test face appears on the hero's head the right way up and not mirrored, Papa killing a Brute cost 4 cowries with a share message, and the hero's own kill earned the reward.
+
+## 14. Iteration 10 — one link for everyone: multiplayer on GitHub Pages (18 October 2026)
+
+**Change:** the GitHub Pages link now has the full online features (shared world, friend codes, requests, chat, invites, waves) without Claude.
+- **How it connects:** `p2p.mjs` connects phones directly with WebRTC using Trystero (`@trystero-p2p/mqtt@0.25.4` from jsDelivr, MIT licence). Public MQTT brokers are used only for matchmaking. Trystero's nostr route did not connect reliably in testing, so MQTT is used.
+- **Drop-in replacement:** it exposes the same `room` (`on`, `emit`, `presence`, `onPeers`, `join`, `leave`) and `user.id()` interface the game uses with Claude's runtime, so `social.mjs` is unchanged.
+- **Identity:** each device holds an ECDSA P-256 key (localStorage). Its id is a hash of the public key, and a peer becomes verified only after signing its own connection id. Unverified peers have `by: null` and are ignored for friends, chat and invites.
+- **Opt-out:** online play can be switched off in Settings (`settings.playOnline`). The Friends tab notes that peers can see each other's internet address. Inside Claude the game still uses Claude's room.
+
+**Verified:** in Chromium with two separate players (localhost and 127.0.0.1, so each had its own storage and key): both connected and verified within seconds; each saw the other's avatar and name; a friend request was accepted; chat and a high-five arrived. Real phones on mobile networks were not tested. Without a TURN relay, some carrier networks may block direct connections.
