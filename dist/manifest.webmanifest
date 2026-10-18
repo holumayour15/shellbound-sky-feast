@@ -1,0 +1,10 @@
+{
+  "name": "Shellbound: The Sky Feast",
+  "short_name": "Shellbound",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#120c26",
+  "theme_color": "#120c26",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

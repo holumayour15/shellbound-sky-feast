@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="UTF-8"><title>Cast preview (dev)</title>
+<style>html,body{margin:0;height:100%;background:#a8a46a;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/fx/" } }</script></head>
+<body><script type="module">
+import * as THREE from 'three';
+import { makeAmara, makePapa, makeGrandma, makeMamaNkem, makeNgozi, makeKid } from './legend/humans.mjs';
+import { makeTortoise } from './legend/models.mjs';
+import { DEFAULT_LOOK, HEROES } from './legend/config.mjs';
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = true; document.body.appendChild(r.domElement);
+const s = new THREE.Scene(); s.background = new THREE.Color('#9b9a62');
+const cam = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 100);
+const view = new URLSearchParams(location.search).get('v') || 'pair', back = location.search.includes('back');
+s.add(new THREE.HemisphereLight('#fff6e8', '#6a5a3a', 1.4)); const d = new THREE.DirectionalLight('#fff1dc', 2.4); d.position.set(3, 6, 6); d.castShadow = true; s.add(d);
+const fill = new THREE.DirectionalLight('#cfe0ff', 0.8); fill.position.set(-4, 3, 2); s.add(fill);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(10, 32), new THREE.MeshStandardMaterial({ color: '#8f8c58' })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; s.add(ground);
+const cast = [];
+const put = (m, x, opts = {}) => { m.root.position.x = x; s.add(m.root); cast.push({ m, opts }); return m; };
+if (view === 'pair') {
+  put(makePapa(), -0.45, { crossArms: true }); const a = put(makeAmara(DEFAULT_LOOK), 0.45, { crossArms: true });
+  const mbe = makeTortoise({ scale: 0.15, outfit: { head: 'none', wrap: 'adire', shell: 'natural', acc: 'none' } }); a.gear.mbeSlot.add(mbe.root); mbe.root.rotation.y = Math.PI / 2;
+  cam.position.set(back ? 3 : 0, 1.5, back ? -5.4 : 6.2); cam.lookAt(0, 1.25, 0);
+} else if (view === 'heroes') {
+  const stage = new URLSearchParams(location.search).get('s') || 'child';
+  HEROES.forEach((h, i) => put(makeAmara(h.look, stage, h.gender), (i - 3.5) * 1.05));
+  cam.position.set(0, 1.5, 12); cam.lookAt(0, 1.0, 0);
+} else {
+  const looks = [DEFAULT_LOOK, { ...DEFAULT_LOOK, hair: 'braids', top: 'adire', bottom: 'wrapper', skin: 'ebony', face: 'uli' }, { ...DEFAULT_LOOK, hair: 'afro', top: 'kente', bottom: 'denim', hairColor: 'auburn', acc: 'glasses', skin: 'caramel', face: 'freckles' }, { ...DEFAULT_LOOK, hair: 'bantu', top: 'ankara', bottom: 'akwete', shoes: 'boots', face: 'glitter', lips: 'berry' }, { ...DEFAULT_LOOK, hair: 'gele', top: 'feather', bottom: 'bogolan', acc: 'beads' }];
+  looks.forEach((l, i) => put(makeAmara(l), (i - 2) * 0.9));
+  put(makeGrandma(), -3.0); put(makeMamaNkem(), 3.0); put(makeNgozi(), 3.9); put(makeKid(), -3.8);
+  cam.position.set(0, 1.6, 11); cam.lookAt(0, 1.0, 0);
+}
+cast.forEach(c => c.m.root.traverse(o => { if (o.isMesh) o.castShadow = true; }));
+window.__dbg = { s, cam, cast, r, draw: () => { t += 0.016; cast.forEach(c => c.m.animate(0.016, { t, speed: 0, grounded: true, ...c.opts })); r.render(s, cam); } }; let t = 0; (function loop() { requestAnimationFrame(loop); t += 0.016; cast.forEach(c => c.m.animate(0.016, { t, speed: 0, grounded: true, ...c.opts })); r.render(s, cam); })();
+</script></body></html>

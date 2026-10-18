@@ -1,0 +1,1 @@
+{"name":"shellbound-prototype","private":true,"type":"module","scripts":{"test":"node tests/legend-check.mjs && node tests/sky-check.mjs && node --experimental-vm-modules tests/sky-runtime.mjs && node --experimental-vm-modules tests/check.mjs","serve":"python tools/serve.py 8000"},"dependencies":{"three":"0.180.0"}}

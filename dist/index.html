@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#120c26">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Shellbound: The Sky Feast</title>
+<meta name="description" content="Create your own hero, choose your age and weapon, and set out with Papa Ike, Mbe the trickster tortoise and your friends on a 3D West African folktale adventure.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Outfit:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="legend/legend.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/fx/" } }</script>
+</head>
+<body>
+<canvas id="scene" tabindex="0" aria-label="Shellbound 3D world"></canvas>
+
+<div id="loading" class="screen center">
+  <div class="loader-mark" aria-hidden="true"><i></i><i></i><i></i></div>
+  <p class="eyebrow">BUKHAM PLAY PRESENTS</p>
+  <h2 class="load-title">Gathering the storytellers…</h2>
+  <div class="bar"><i id="loadBar"></i></div>
+  <p id="loadTip" class="tip">Tip: Press Q to slip between Now and Story-time.</p>
+</div>
+
+<div id="error" class="screen center" hidden>
+  <h2>This world needs WebGL 2</h2>
+  <p>Try a current version of Chrome, Edge, Firefox or Safari with hardware acceleration switched on.</p>
+  <p class="links"><a href="skybound.html">Skybound Run (earlier 3D edition)</a> · <a href="classic.html">Classic 2D edition</a></p>
+</div>
+
+<section id="title" class="screen" hidden>
+  <header class="brandbar"><span class="brand">◈ BUKHAM <b>PLAY</b></span><span class="edition">4D ADVENTURE · SPACE + TIME</span></header>
+  <div class="title-main">
+    <p class="eyebrow">A TORTOISE FOLKTALE, TOLD IN FOUR DIMENSIONS</p>
+    <h1>SHELLBOUND<span>The Sky Feast</span></h1>
+    <p class="lede">Create your own hero — your name, girl or boy, even your own face. Choose your age: child, teenager, youth or adult, each with its own challenge and weapons. Play with Amara, Hadassah, Tehilah, Tiara, Tobi, Emeka, Dayo and Musa, invite your real friends, and wake the old trickster tortoise. Slip between <b>Now</b> and <b>Story-time</b>, solve drum riddles, dig for treasure, shop at the market and win back the feast in the sky.</p>
+    <div class="menu-buttons">
+      <button id="btnNew" class="btn gold big">Begin the tale <span>→</span></button>
+      <button id="btnContinue" class="btn big" hidden>Continue <small id="continueInfo"></small></button>
+      <div class="row">
+        <button id="btnBoard" class="btn">Leaderboard</button>
+        <button id="btnSettings" class="btn">Settings</button>
+        <button id="btnHelp" class="btn">How to play</button>
+      </div>
+    </div>
+    <ul class="chips">
+      <li><b>Your hero</b> your name, your face, 4 ages</li>
+      <li><b>Weapons</b> staff, catapult, spear, idà sword</li>
+      <li><b>Monsters</b> brutes, wisps, Greedlings roam</li>
+      <li><b>Friends</b> add by code, invite to play</li>
+      <li><b>Chat</b> with villagers, Papa, Mbe and friends</li>
+      <li><b>Dress up</b> hair, clothes, face paint</li>
+            <li><b>Mbe</b> rolls, sniffs out treasure</li>
+      <li><b>Market</b> food, groceries, upgrades</li>
+      <li><b>Time Weave</b> two worlds, one path</li>
+    </ul>
+  </div>
+  <footer class="title-foot"><span>Inspired by the West African tale of how the tortoise got his cracked shell.</span><span class="links">Earlier editions: <a href="skybound.html">Skybound Run 3D</a> · <a href="classic.html">Classic 2D</a></span></footer>
+</section>
+
+<section id="select" class="screen" hidden>
+  <div class="select-panel">
+    <p class="eyebrow">GETTING READY</p>
+    <h2>Create your hero</h2>
+    <div class="name-row">
+      <span id="selfieThumb" class="selfie-thumb" hidden aria-hidden="true"></span>
+      <label class="name-field"><span class="eyebrow small">YOUR NAME</span><input id="heroName" class="name-input" maxlength="14" placeholder="Type your hero’s name" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <p id="nameNote" class="note"></p>
+    <div id="genderPick" class="segmented gender-pick" role="radiogroup" aria-label="Girl or boy"></div>
+    <div class="selfie-row">
+      <button id="selfieBtn" class="btn" type="button">📷 Selfie play — use my face</button>
+      <button id="selfieSmart" class="btn" type="button" hidden>✨ Smart match</button>
+      <button id="selfieClear" class="btn" type="button" hidden>Remove photo</button>
+      <input id="selfieInput" type="file" accept="image/*" capture="user" hidden>
+    </div>
+    <p id="selfieNote" class="note">Take or pick a photo to match your skin tone and hair. It stays on this device.</p>
+    <p class="eyebrow small">AGE · SETS THE CHALLENGE AND YOUR WEAPONS</p>
+    <div id="difficulty" class="segmented age-pick" role="radiogroup" aria-label="Age"></div>
+    <p id="diffNote" class="note"></p>
+    <p class="eyebrow small">TALENT</p>
+    <div id="heroPick" class="hero-pick talent-pick" role="radiogroup" aria-label="Talent"></div>
+    <p class="eyebrow small">WEAPON</p>
+    <div id="weaponPick" class="segmented" role="radiogroup" aria-label="Weapon"></div>
+    <p class="eyebrow small">LOOK</p>
+    <div id="lookTabs" class="w-tabs"></div>
+    <div id="lookGrid" class="look-grid"></div>
+    <p id="lookNote" class="note"></p>
+    <div class="row end"><button id="selRandom" class="btn">Surprise me</button><button id="selBack" class="btn">Back</button><button id="selGo" class="btn gold big">Ready! →</button></div>
+  </div>
+</section>
+
+<div id="hud" hidden>
+  <div class="hud-tl">
+    <div id="hearts" class="hearts" aria-label="Hearts"></div>
+    <div class="energy" title="Spin energy"><i id="energy"></i></div>
+    <div class="buddies"><span id="papaChip" class="chip">Papa · following</span><span id="friendsChip" class="chip">Friends · 0 online</span><span id="stageChip" class="chip stage">Child</span><span id="mbeChip" class="chip" hidden>Mbe · ready</span><span id="buffChip" class="chip buff" hidden></span></div>
+    <div id="abilities" class="abilities"></div>
+  </div>
+  <div class="hud-tc">
+    <div class="objective">
+      <small id="zone">VILLAGE OF STORIES</small>
+      <strong id="quest">Find Grandma Adaeze</strong>
+      <span id="qdetail">Papa is walking you to the story fire.</span>
+    </div>
+    <div id="compass" class="compass"><i id="cmark">◆</i><i id="tmark" class="tmark" hidden>✦</i><b id="cdist"></b></div>
+    <div id="race" class="race" hidden></div>
+  </div>
+  <div class="hud-tr">
+    <div class="stats">
+      <span title="Cowries">◈ <b id="cowries">0</b></span>
+      <span id="feathers" class="feathers" title="Feathers earned"></span>
+      <span title="Tale Stones">✦ <b id="tales">0/6</b></span>
+      <span id="timer" class="timer">0:00</span>
+    </div>
+    <div class="tools">
+      <button id="bHobby" class="icon" aria-label="Hobbies and prizes">🏆</button>
+      <button id="bChat" class="icon" aria-label="Chat">✉</button>
+      <button id="bBag" class="icon" aria-label="Bag">⊞</button>
+      <button id="bMusic" class="icon" aria-label="Toggle sound">♫</button>
+      <button id="bFull" class="icon" aria-label="Full screen" hidden>⛶</button>
+      <button id="bMenu" class="icon" aria-label="Pause menu">Ⅱ</button>
+    </div>
+  </div>
+  <button id="weaveDial" class="weave-dial" aria-label="Time Weave">
+    <span class="dial"><i class="sun">☀</i><i class="moon">☾</i></span>
+    <span class="dial-label"><b id="weaveLabel">NOW</b><small>Q · WEAVE</small></span>
+  </button>
+  <div id="prompt" class="prompt" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="hint" class="hint"></div>
+  <div id="touch" class="touch" hidden>
+    <div id="stick" class="stick"><i id="knob"></i></div>
+    <div class="tbtns">
+      <button id="tWeave" class="tb weave">☾</button>
+      <button id="tSniff" class="tb small">Sniff</button>
+      <button id="tBike" class="tb small">🚲</button>
+      <button id="tEmote" class="tb small">👋</button>
+      <button id="tMbe" class="tb mbe">Mbe</button>
+      <button id="tDrum" class="tb">Act</button>
+      <button id="tSpin" class="tb">Attack</button>
+      <button id="tJump" class="tb jump">Jump</button>
+    </div>
+  </div>
+</div>
+
+<div id="dialogue" class="dialogue" hidden>
+  <div class="d-portrait" id="dPortrait"></div>
+  <div class="d-body">
+    <div class="d-head"><b id="dName"></b><small id="dRole"></small></div>
+    <p id="dText"></p>
+    <div id="dChoices" class="d-choices" hidden></div>
+  </div>
+  <button id="dNext" class="d-next" aria-label="Next">▶</button>
+</div>
+
+<div id="hobbyUI" class="hobby-ui" hidden>
+  <b id="hTitle"></b>
+  <div id="hBar" class="h-bar" hidden><i id="hZone"></i><i id="hMark"></i></div>
+  <p id="hText"></p>
+  <div class="row"><button id="hTap" class="btn gold big">Tap!</button><button id="hQuit" class="btn">Stop</button></div>
+</div>
+<div id="rotateHint" class="rotate-hint" hidden>Turn your phone sideways for the best view ↻</div>
+
+<div id="cine" class="cine" hidden><i class="lb top"></i><i class="lb bottom"></i><p id="cineText"></p><small>Press any key to skip</small></div>
+<div id="fade" class="fade"></div>
+<div id="flash" class="flash"></div>
+
+<aside id="wardrobe" class="wardrobe" hidden>
+  <div class="w-head"><div><small id="wKicker">AMARA'S MIRROR</small><h2 id="wTitle">Wardrobe</h2></div><span class="w-purse">◈ <b id="wCowries">0</b></span><button id="wClose" class="icon" aria-label="Close wardrobe">×</button></div>
+  <div id="wTabs" class="w-tabs"></div>
+  <div id="wGrid" class="w-grid"></div>
+  <p class="w-foot" id="wFoot"></p>
+</aside>
+
+<aside id="chat" class="chat" hidden aria-label="Chat">
+  <div class="chat-head"><div id="chatTabs" class="chat-tabs" role="tablist"></div><button id="chatClose" class="icon" aria-label="Close chat">×</button></div>
+  <div id="chatFriends" class="chat-friends" hidden></div>
+  <div id="chatLog" class="chat-log" aria-live="polite"></div>
+  <div id="chatQuick" class="chat-quick"></div>
+  <form id="chatForm" class="chat-form" autocomplete="off"><input id="chatInput" maxlength="140" placeholder="Say something…" aria-label="Message"><button class="btn gold" id="chatSend">Send</button></form>
+  <label id="smartRow" class="chat-smart" hidden><input type="checkbox" id="chatSmart"> Smart replies (uses your Claude account)</label>
+</aside>
+<div id="bubble" class="bubble" hidden></div>
+
+<div id="photo" class="photo-ui" hidden><b>PHOTO MODE</b><span>Drag to orbit · Scroll to zoom · F dance · P or Esc to exit</span></div>
+
+<dialog id="panel" class="panel"><div class="p-head"><small id="pKicker">SHELLBOUND</small><button id="pClose" class="icon" aria-label="Close">×</button></div><div id="pBody"></div></dialog>
+
+<script type="module" src="legend/main.mjs"></script>
+</body>
+</html>
