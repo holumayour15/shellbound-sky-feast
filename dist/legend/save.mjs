@@ -28,7 +28,7 @@ export function freshSave(opts = {}) {
     weapon: 'staff', weapons: ['none', 'staff'], cowries: 0, earned: STAGES.find(st => st.id === stage).earn, stage, grown: stage,
     job: null, jobsDone: 0, picked: [], threads: [], tales: [], dug: [], chests: [], errands: [],
     puzzles: [], quest: 'meet', feathers: 0, checkpoint: 0, elapsed: 0, deaths: 0, enemies: 0, raceBest: 0,
-    startStage: stage, restarts: 0, lesson: null,
+    startStage: stage, restarts: 0, lesson: null, papaFights: true,
     hobby: { fish: 0, cook: 0, bike: 0 }, catches: {}, cooked: 0, dishes: [], bike: null, bikeBest: 0, badges: [], waves: 0, daily: null, today: { day: 0 } };
 }
 export const cleanName = n => (isStr(n) ? n.replace(/[^\p{L}\p{N} '.-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 14) : '') || 'Shellbound';
@@ -60,7 +60,7 @@ export function sanitize(raw) {
     checkpoint: Math.round(num(raw.checkpoint, 0, CHECKPOINTS.length - 1, 0)),
     elapsed: num(raw.elapsed, 0, 1e7, 0), deaths: Math.round(num(raw.deaths, 0, 1e5, 0)),
     enemies: Math.round(num(raw.enemies, 0, 1e5, 0)), raceBest: num(raw.raceBest, 0, 999, 0),
-    startStage: STAGES.some(st => st.id === raw.startStage) ? raw.startStage : raw.startStage === undefined ? stage : 'child', restarts: Math.round(num(raw.restarts, 0, 1e5, 0)), lesson: null,
+    startStage: STAGES.some(st => st.id === raw.startStage) ? raw.startStage : raw.startStage === undefined ? stage : 'child', restarts: Math.round(num(raw.restarts, 0, 1e5, 0)), lesson: null, papaFights: raw.papaFights !== false,
     hobby: Object.fromEntries(['fish', 'cook', 'bike'].map(k => [k, Math.round(num(raw.hobby?.[k], 0, 1e6, 0))])),
     catches: Object.fromEntries(FISH.map(f => [f.id, Math.round(num(raw.catches?.[f.id], 0, 1e5, 0))]).filter(([, n]) => n)),
     cooked: Math.round(num(raw.cooked, 0, 1e5, 0)), dishes: strList(raw.dishes, 10).filter(id => DISHES.some(d => d.id === id)),
@@ -78,13 +78,13 @@ export const loadGame = () => sanitize(read(SAVE_KEY)) || OLD_SAVE_KEYS.reduce((
 export const saveGame = s => write(SAVE_KEY, s);
 export const clearGame = () => { try { store()?.removeItem(SAVE_KEY); } catch { /* storage unavailable */ } };
 
-export const DEFAULT_SETTINGS = { quality: 'auto', music: 0.6, sfx: 0.8, sensitivity: 1, invertY: false, autoCam: true, reducedMotion: false, textSize: 1, subtitlesSlow: false, smartChat: false };
+export const DEFAULT_SETTINGS = { quality: 'auto', music: 0.6, sfx: 0.8, sensitivity: 1, invertY: false, autoCam: true, reducedMotion: false, textSize: 1, subtitlesSlow: false, smartChat: false, photoFace: true };
 export function loadSettings() {
   const r = read(SETTINGS_KEY) || {}, d = DEFAULT_SETTINGS;
   return { quality: ['auto', 'low', 'medium', 'high'].includes(r.quality) ? r.quality : d.quality,
     music: num(r.music, 0, 1, d.music), sfx: num(r.sfx, 0, 1, d.sfx), sensitivity: num(r.sensitivity, 0.3, 2.5, d.sensitivity),
     invertY: r.invertY === true, autoCam: r.autoCam !== false, reducedMotion: r.reducedMotion === true,
-    textSize: num(r.textSize, 0.9, 1.4, d.textSize), subtitlesSlow: r.subtitlesSlow === true, smartChat: r.smartChat === true };
+    textSize: num(r.textSize, 0.9, 1.4, d.textSize), subtitlesSlow: r.subtitlesSlow === true, smartChat: r.smartChat === true, photoFace: r.photoFace !== false };
 }
 export const saveSettings = s => write(SETTINGS_KEY, s);
 

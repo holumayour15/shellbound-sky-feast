@@ -132,3 +132,15 @@ Fish and dishes sell at a new Sell tab in Mama Nkem's stall. The prizes are a st
 - Slight human timing and dynamics.
 
 **Verified:** `npm test` passes. In Chromium, every style plays and switches without errors, and instrument rendering takes under 70 ms per frame. The sound itself was not listened to.
+
+## 13. Iteration 9 — helpers take a share, and your photo becomes your face (18 October 2026)
+
+**Change:**
+- **Helpers take a share:** when Papa or a called village friend lands the killing blow, the hero earns nothing and pays the helper half the monster's reward (at least 1 cowry, never below zero). A toast names the helper and the share. Kills by real friends in your party earn and cost nothing. Helper kills don't count towards the hero's monster total or badges.
+- **Papa can stay out of fights:** a new Papa option, "Let me fight my own battles", toggles this (`papaFights` in the save).
+- **Photo face:** the selfie now wraps the front of the 3D head in place of the cartoon eyes, nose and mouth. It is an oval crop of the photo that fades into the skin colour (`faceCanvas` in `selfie.mjs`; the `photo` option in `makeHuman`).
+  - Selfies are now taken at 192 px.
+  - A "Photo face: on/off" button sits in the hero creator (`settings.photoFace`).
+  - The photo stays on the device; other players see the cartoon face.
+
+**Verified:** `npm test` passes. In Chromium: a drawn test face appears on the hero's head the right way up and not mirrored, Papa killing a Brute cost 4 cowries with a share message, and the hero's own kill earned the reward.

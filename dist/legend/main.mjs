@@ -19,7 +19,7 @@ import * as L from './layout.mjs';
 import * as TX from './textures.mjs';
 import { freshSave, freeOwned, cleanName, defaultLookFor, loadGame, saveGame, loadSettings, saveSettings, loadBoard, addToBoard, loadFriends, saveFriends, loadSelfie, saveSelfie } from './save.mjs';
 import { createSocial } from './social.mjs';
-import { readSelfie, matchPrompt, cleanMatch } from './selfie.mjs';
+import { readSelfie, matchPrompt, cleanMatch, faceCanvas } from './selfie.mjs';
 import { FISH, fishOf, DISHES, dishOf, RECIPES, recipeUse, quality, HOBBIES, levelOf, nextLevelXp, LEVEL_XP, rollFish, reelZone, reelHits, BIKE_GATES, bikeReward, BIKE_PAR, BADGES, newBadges, dayNumber, dailyGift, challengesFor } from './hobbies.mjs';
 import { buildHobbyWorld, makeBike } from './hobbyworld.mjs';
 
@@ -188,10 +188,21 @@ function updateFx(dt) {
   shocks = shocks.filter(s => !s.done);
 }
 
+// The selfie as a face texture (built once per photo, only when the player has switched photo face on).
+let faceTex = null, faceFor = null;
+function photoFace() {
+  if (!selfieUrl || settings.photoFace === false) return null;
+  if (faceFor !== selfieUrl) {
+    faceFor = selfieUrl; faceTex?.dispose();
+    faceTex = new THREE.CanvasTexture(faceCanvas(selfieUrl, () => { faceTex.needsUpdate = true; }));
+    faceTex.colorSpace = THREE.SRGBColorSpace; faceTex.anisotropy = 4;
+  }
+  return faceTex;
+}
 function rebuildAmara() {
   const pos = amara ? amara.root.position.clone() : new THREE.Vector3(P.x, P.y, P.z), rot = amara ? amara.root.rotation.y : 0, vis = amara ? amara.root.visible : true;
   if (amara) W.scene.remove(amara.root);
-  amara = makeHeroine(S.look, S.stage, S.gender, weaponLook());
+  amara = makeHeroine(S.look, S.stage, S.gender, weaponLook(), photoFace());
   amara.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
   amara.root.position.copy(pos); amara.root.rotation.y = rot; amara.root.visible = vis;
   W.scene.add(amara.root);
@@ -462,6 +473,7 @@ function talkPapa() {
   if (st === 'child') opts.push({ label: papa.S.mode === 'follow' ? 'Wait here, Papa' : 'Follow me, Papa', fn: togglePapa });
   else if (papa.S.mode === 'home') opts.push({ label: 'Come with me!', fn: () => summon(papa) });
   else opts.push({ label: 'Thanks, Papa — you can go home', fn: () => sendHome(papa, 'Papa heads back to his forge.') });
+  opts.push({ label: S.papaFights ? 'Let me fight my own battles' : 'Help me fight again', fn: () => { S.papaFights = !S.papaFights; papa.S.fights = S.papaFights; toast(S.papaFights ? 'Papa will fight beside you again (he takes a share of what he beats).' : 'Papa will stay out of fights — every reward is yours.', 3); persist(); } });
   opts.push({ label: 'Any advice?', fn: papaAdvice }, { label: 'Upgrade my gear', fn: () => openShop('forge') }, { label: 'Never mind' });
   choose('papa', st === 'child' ? 'What do you need, my daughter?' : st === 'teen' ? 'My big girl! What do you need?' : st === 'youth' ? 'Look at you, all grown up. How can your old Papa help?' : 'My grown-up child — the whole village asks for YOUR help now. What can I do?', opts, pos);
 }
@@ -866,7 +878,7 @@ function updateParty(dt) {
     r.model.animate(dt, { t: time, speed: sp / T.walk, grounded: true, spin: m.spin && !m.ride, ride: m.ride, wave: m.anim === 'wave' || m.anim === 'highfive' || (r.waveT > 0), cheer: m.anim === 'cheer', dance: m.anim === 'dance', fish: m.anim === 'fish' ? { cast: 0 } : null, cook: m.anim === 'cook' });
     r.waveT = Math.max(0, (r.waveT || 0) - dt);
     r.hitCd = Math.max(0, r.hitCd - dt);
-    if (m.friend && m.spin && r.hitCd <= 0) { r.hitCd = 0.4; enemies.hitAt(r.x, r.y, r.z, 2.4, 'friend', weave, enemyCtx, 1); }
+    if (m.friend && m.spin && r.hitCd <= 0) { r.hitCd = 0.4; enemies.hitAt(r.x, r.y, r.z, 2.4, 'party', weave, enemyCtx, 1); }
   }
   for (const [peer, r] of worldAvatars) if (!seen.has(peer)) { W.scene.remove(r.group); worldAvatars.delete(peer); }
 }
@@ -1190,9 +1202,9 @@ function summon(c, quiet = false) {
   if (st === 'busy') return quiet || toast(`${name} needs a moment before coming out again.`);
   const sx = P.x - Math.sin(P.face) * 1.6 + Math.cos(P.face) * 1.4, sz = P.z - Math.cos(P.face) * 1.6 - Math.sin(P.face) * 1.4;
   sparks(c.S.x, c.S.y + 1, c.S.z, '#e8e0d0', 16, 3, 0.6, 0.6, -1);
-  c.place(sx, sz, surfaceBelow(env, sx, sz, P.y + 1).y); c.S.mode = 'help'; c.S.hold = null; c.S.helpT = 60; c.S.fights = true;
+  c.place(sx, sz, surfaceBelow(env, sx, sz, P.y + 1).y); c.S.mode = 'help'; c.S.hold = null; c.S.helpT = 60; c.S.fights = c === papa ? S.papaFights !== false : true;
   sparks(c.S.x, c.S.y + 1, c.S.z, c.heroine ? c.heroine.color : '#ffd35a', 24, 4, 0.6, 0.8, -1); audio.play('checkpoint');
-  toast(`${name} came to fight beside you for one minute!`, 3);
+  toast(`${name} came to fight beside you for one minute! Helpers take a share of the cowries for every monster <i>they</i> finish off.`, 4);
 }
 function sendHome(c, why = '') {
   if (!c || c.S.mode === 'home') return;
@@ -1214,7 +1226,7 @@ function applyStageRules() {
   const st = stageId();
   if (st === 'child') { if (papa.S.mode === 'home') { papa.S.mode = 'follow'; papa.place(P.x + 1.5, P.z + 1.2, heightAt(P.x + 1.5, P.z + 1.2)); } papa.S.fights = true; }
   else if (papa.S.mode === 'follow' || papa.S.mode === 'wait') { papa.S.mode = 'home'; const h = papa.S.home; papa.place(h.x, h.z, heightAt(h.x, h.z)); }
-  papa.S.fights = true; for (const f of Object.values(friends)) f.S.fights = true;
+  papa.S.fights = S.papaFights !== false; for (const f of Object.values(friends)) f.S.fights = true;
 }
 function rollFriends(first = false) {
   for (const h of HEROES) friendOnline[h.id] = first ? !['tiara', 'musa'].includes(h.id) : Math.random() < 0.75;
@@ -1493,6 +1505,7 @@ let selfieMatch = {};
 function renderSelfie() {
   const th = $('selfieThumb'); th.hidden = !selfieUrl; if (selfieUrl) th.style.backgroundImage = `url(${selfieUrl})`;
   $('selfieClear').hidden = !selfieUrl;
+  $('selfieFace').hidden = !selfieUrl; $('selfieFace').textContent = settings.photoFace !== false ? '🙂 Photo face: on' : '🙂 Photo face: off';
   $('selfieSmart').hidden = !(selfieBlob && CHAT.sample);
 }
 async function onSelfie(file) {
@@ -1502,7 +1515,7 @@ async function onSelfie(file) {
     const r = await readSelfie(file);
     selfieUrl = r.thumb; selfieBlob = r.blob; saveSelfie(r.thumb);
     draftLook.skin = r.skin; draftLook.hairColor = r.hairColor; selfieMatch = { skin: r.skin, hairColor: r.hairColor };
-    $('selfieNote').textContent = `Matched your skin tone (${lookItem('skin', r.skin).name}) and hair colour (${lookItem('hairColor', r.hairColor).name}). Your photo stays on this device and is never shown to other players.`;
+    $('selfieNote').textContent = `Your photo is now your face! Skin tone (${lookItem('skin', r.skin).name}) and hair colour (${lookItem('hairColor', r.hairColor).name}) matched too. Your photo stays on this device — other players see a cartoon face.`;
     audio.play('buy'); previewHero(); renderCreator(); renderSelfie();
   } catch { $('selfieNote').textContent = 'That photo could not be read. Try another one.'; }
 }
@@ -1738,6 +1751,7 @@ function bindUI() {
   $('selfieBtn').onclick = () => $('selfieInput').click();
   $('selfieInput').addEventListener('change', e => { onSelfie(e.target.files?.[0]); e.target.value = ''; });
   $('selfieSmart').onclick = smartSelfie;
+  $('selfieFace').onclick = () => { settings.photoFace = settings.photoFace === false; saveSettings(settings); audio.play('ui'); previewHero(); renderSelfie(); };
   $('selfieClear').onclick = () => { selfieUrl = null; selfieBlob = null; selfieMatch = {}; saveSelfie(null); $('selfieNote').textContent = 'Photo removed from this device.'; renderSelfie(); renderCreator(); };
   $('pClose').onclick = closePanel; $('wClose').onclick = closeWardrobe;
   $('bMenu').onclick = openPause; $('bHobby').onclick = () => { if (mode === 'play') openHobbies(); };
@@ -1812,7 +1826,19 @@ const enemyCtx = {
   get player() { return P; }, get weave() { return weave; }, get attackDmg() { return S ? weaponDmg() : 1; },
   hurt: (x, z, d, p, e) => hurt(x, z, d, p, e),
   bounce: () => { P.vy = 12; P.jumps = 1; audio.play('stomp'); },
-  defeat: (e, n) => { if (e.practice) { sparks(e.x, e.y + 1, e.z, '#ffd35a', 30, 6); return; } S.enemies++; bump('monToday'); S.cowries += n; audio.play('defeat'); sparks(e.x, e.y + 1, e.z, { hawk: '#b48cff', greed: '#b48cff', brute: '#ff7a3a', wisp: '#7fe9ff', hyena: '#9a7bff' }[e.kind] || '#7dffb0', e.kind === 'brute' ? 44 : 26, 7); toast(`+${n} ◈`, 1.2); },
+  defeat: (e, n, src = 'hero') => {
+    if (e.practice) { sparks(e.x, e.y + 1, e.z, '#ffd35a', 30, 6); return; }
+    // A monster beaten by a helper earns nothing, and the helper takes a share: half the reward, at least 1 cowry.
+    if (src.startsWith('helper:') || src === 'party') {
+      audio.play('stomp'); sparks(e.x, e.y + 1, e.z, '#e8e0d0', 18, 5);
+      if (src === 'party') return;
+      const id = src.slice(7), who = id === 'papa' ? 'Papa' : (HEROES.find(h => h.id === id)?.name || 'Your friend');
+      const fee = Math.min(S.cowries, Math.max(1, Math.ceil(n / 2)));
+      S.cowries -= fee; S.helperFees = (S.helperFees || 0) + fee;
+      toast(fee ? `${who} beat it — <b>${who}’s share: −${fee} ◈</b>. Land the final blow yourself to earn the reward!` : `${who} beat it for you. Land the final blow yourself to earn cowries!`, 3);
+      return;
+    }
+    S.enemies++; bump('monToday'); S.cowries += n; audio.play('defeat'); sparks(e.x, e.y + 1, e.z, { hawk: '#b48cff', greed: '#b48cff', brute: '#ff7a3a', wisp: '#7fe9ff', hyena: '#9a7bff' }[e.kind] || '#7dffb0', e.kind === 'brute' ? 44 : 26, 7); toast(`+${n} ◈`, 1.2); },
   steal: e => { if (e.practice) { knockback(P, e.x, e.z, 6); toast('Grandma: “See how it grabs? Stomp it or spin before it reaches you!”', 2.5); return 0; } const n = Math.min(3, S.cowries); S.cowries -= n; audio.play('hurt'); sparks(P.x, P.y + 1.2, P.z, '#fff2c4', 10, 4); if (n) toast(`A Greedling snatched <b>${n} cowries</b>! Get them back!`, 2.4); knockback(P, e.x, e.z, 8); return n; },
   fx: (k, e) => {
     if (k === 'screech') audio.play('screech'); if (k === 'stomp') sparks(e.x, e.y + 0.8, e.z, '#ffffff', 10, 4);
@@ -2131,7 +2157,7 @@ function updateCompanions(dt) {
     player: P, enemies, weave, busy: !playing || mode === 'dialogue', talking: mode === 'dialogue' && D?.lines[D.i]?.who === 'papa', dance: dancing && Math.hypot(P.x - papa.S.x, P.z - papa.S.z) < 6,
     waitAt: !playing ? { x: papa.S.x, z: papa.S.z } : fightBoss && !celebrate && papa.S.mode !== 'home' ? { x: L.PALACE.x + 3, z: L.PALACE.z + 22 } : null,
     surface: (x, z, fromY) => surfaceBelow(env, x, z, fromY).y,
-    onAttack: (x, y, z) => { audio.play('stomp'); shock(x, y + 0.2, z, '#ff9a40', 3.2, 0.4); sparks(x, y + 0.3, z, '#d9b48a', 14, 4); shake = Math.max(shake, 0.2); enemies.hitAt(x, y + 1, z, 3.2, 'papa', weave, enemyCtx, 2 + stageIndex(stageId())); },
+    onAttack: (x, y, z) => { audio.play('stomp'); shock(x, y + 0.2, z, '#ff9a40', 3.2, 0.4); sparks(x, y + 0.3, z, '#d9b48a', 14, 4); shake = Math.max(shake, 0.2); enemies.hitAt(x, y + 1, z, 3.2, 'helper:papa', weave, enemyCtx, 2 + stageIndex(stageId())); },
     puff: (x, y, z) => sparks(x, y + 1, z, '#e8e0d0', 16, 3, 0.6, 0.6, -1),
   });
   for (const [id, f] of Object.entries(friends)) {
@@ -2140,7 +2166,7 @@ function updateCompanions(dt) {
       player: P, enemies, weave, busy: !playing || mode === 'dialogue', talking: mode === 'dialogue' && D?.lines[D.i]?.who === id, dance: dancing && Math.hypot(P.x - f.S.x, P.z - f.S.z) < 6,
       waitAt: !playing && f.S.mode !== 'home' ? { x: f.S.x, z: f.S.z } : null,
       surface: (x, z, fromY) => surfaceBelow(env, x, z, fromY).y,
-      onAttack: (x, y, z) => { audio.play('spin'); shock(x, y + 0.3, z, f.heroine.color, 2.8, 0.35); sparks(x, y + 1, z, f.heroine.color, 12, 4); enemies.hitAt(x, y + 1, z, 2.8, 'friend', weave, enemyCtx, 1 + stageIndex(stageId())); },
+      onAttack: (x, y, z) => { audio.play('spin'); shock(x, y + 0.3, z, f.heroine.color, 2.8, 0.35); sparks(x, y + 1, z, f.heroine.color, 12, 4); enemies.hitAt(x, y + 1, z, 2.8, 'helper:' + id, weave, enemyCtx, 1 + stageIndex(stageId())); },
       puff: (x, y, z) => sparks(x, y + 1, z, '#e8e0d0', 16, 3, 0.6, 0.6, -1),
     });
   }

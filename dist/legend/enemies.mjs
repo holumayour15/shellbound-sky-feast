@@ -128,12 +128,12 @@ export function createEnemies(scene, diff) {
   HYENA_PACKS.forEach(([x, z], i) => { for (let k = 0; k < 2; k++) add(make.hyena(x + k * 2.5, z + k), `hy${i}_${k}`); });
   let spawnId = 0;
 
-  function kill(e, ctx) { e.dead = true; e.deadT = 0; (e.v.g || e.v.root).visible = false; ctx.defeat(e, (e.reward || 2) + (e.loot || 0)); }
+  function kill(e, ctx, src = 'hero') { e.dead = true; e.deadT = 0; (e.v.g || e.v.root).visible = false; ctx.defeat(e, (e.reward || 2) + (e.loot || 0), src); }
   // Damage with a short per-enemy cooldown so one swing counts once. Returns true if it landed.
-  function damage(e, dmg, ctx, fromX, fromZ) {
+  function damage(e, dmg, ctx, fromX, fromZ, src = 'hero') {
     if (e.dead || (e.hitCd || 0) > 0) return false;
     e.hitCd = 0.35; e.hp = (e.hp ?? 1) - dmg; e.flash = 0.25;
-    if (e.hp <= 0) { kill(e, ctx); return true; }
+    if (e.hp <= 0) { kill(e, ctx, src); return true; }
     e.stun = Math.max(e.stun || 0, e.kind === 'brute' ? 0.7 : 1.5);
     if (e.kind === 'brute' && e.state === 'charge') { e.state = 'tired'; e.t = 0; }
     if (fromX != null) { const d = Math.hypot(e.x - fromX, e.z - fromZ) || 1; e.x += (e.x - fromX) / d * 1.4; e.z += (e.z - fromZ) / d * 1.4; }
@@ -333,10 +333,10 @@ export function createEnemies(scene, diff) {
       const d = Math.hypot(e.x - x, (e.kind === 'hawk' || e.kind === 'wisp' ? e.y - y : 0), e.z - z);
       if (d > r) continue;
       if (e.kind === 'devil') { e.scatter = 5; n++; continue; }
-      if (e.kind === 'hawk') { if (weave > 0.5) { if (e.stun > 0 && source !== 'mbe') kill(e, ctx); else { e.stun = 4; e.state = 'circle'; } n++; } continue; }
+      if (e.kind === 'hawk') { if (weave > 0.5) { if (e.stun > 0 && source !== 'mbe') kill(e, ctx, source); else { e.stun = 4; e.state = 'circle'; } n++; } continue; }
       const power = source === 'youth' ? Math.max(dmg, 2) : source === 'mbe' ? (e.kind === 'beetle' && e.stun <= 0 ? 0 : 1) : dmg;
       if (source === 'mbe' && e.kind === 'beetle' && e.stun <= 0) { e.stun = 4; n++; continue; }
-      if (damage(e, e.kind === 'beetle' && e.stun > 0 ? 99 : power, ctx, x, z)) n++;
+      if (damage(e, e.kind === 'beetle' && e.stun > 0 ? 99 : power, ctx, x, z, source)) n++;
     }
     return n;
   }

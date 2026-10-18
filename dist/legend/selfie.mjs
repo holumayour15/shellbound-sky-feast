@@ -22,13 +22,13 @@ function loadImage(file) {
 }
 // Returns a small square thumbnail plus the closest skin tone and hair colour.
 export async function readSelfie(file) {
-  const img = await loadImage(file), N = 96, c = document.createElement('canvas'); c.width = c.height = N;
+  const img = await loadImage(file), N = 192, c = document.createElement('canvas'); c.width = c.height = N;
   const side = Math.min(img.width, img.height), ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, N, N);
   const { data } = ctx.getImageData(0, 0, N, N);
   const skinRgb = regionColor(data, N, 0.38, 0.48, 0.62, 0.68), hairRgb = regionColor(data, N, 0.3, 0.04, 0.7, 0.16);
   const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.8));
-  return { thumb: c.toDataURL('image/jpeg', 0.72), blob, skin: nearestColor(skinRgb, LOOK.skin.items), hairColor: nearestColor(hairRgb, LOOK.hairColor.items.filter(i => i.id !== 'indigo')) };
+  return { thumb: c.toDataURL('image/jpeg', 0.7), blob, skin: nearestColor(skinRgb, LOOK.skin.items), hairColor: nearestColor(hairRgb, LOOK.hairColor.items.filter(i => i.id !== 'indigo')) };
 }
 // What Claude may pick from for a smart match.
 export function matchPrompt(gender) {
@@ -42,4 +42,22 @@ export function cleanMatch(m, gender) {
   if (!m || typeof m !== 'object') return out;
   for (const slot of ['skin', 'hairColor', 'hair', 'acc', 'face']) { const it = LOOK[slot].items.find(i => i.id === m[slot]); if (it && (!it.g || it.g === gender) && it.cost >= 0) out[slot] = it.id; }
   return out;
+}
+
+// Turns the saved selfie into a face texture: the centre of the photo, in an oval that fades into the skin.
+export function faceCanvas(dataUrl, onReady) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const img = new Image();
+  img.onload = () => {
+    const g = c.getContext('2d'), s = Math.min(img.width, img.height), crop = s * 0.78;
+    g.filter = 'saturate(1.15) contrast(1.05)';
+    g.drawImage(img, (img.width - crop) / 2, (img.height - crop) / 2 - s * 0.03, crop, crop, 0, 0, 256, 256);
+    g.filter = 'none'; g.globalCompositeOperation = 'destination-in';
+    g.save(); g.translate(128, 128); g.scale(0.84, 1);
+    const grad = g.createRadialGradient(0, 0, 70, 0, 0, 126); grad.addColorStop(0, 'rgba(0,0,0,1)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad; g.beginPath(); g.arc(0, 0, 128, 0, Math.PI * 2); g.fill(); g.restore();
+    onReady?.();
+  };
+  img.src = dataUrl;
+  return c;
 }

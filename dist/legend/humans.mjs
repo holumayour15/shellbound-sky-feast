@@ -136,7 +136,14 @@ export function makeHuman(o = {}) {
   for (const s of [-1, 1]) head.add(mk(SPH, skin, s * hr * 0.98, -hr * 0.05, -hr * 0.05, hr * 0.22, hr * 0.32, hr * 0.15));
   const fz = hr * B.headScale[2];
   const eyes = [];
-  for (const s of [-1, 1]) {
+  // Selfie play: the player's own photo wraps the front of the head in place of the cartoon features.
+  if (o.photo) {
+    const w = 2.0, h = 2.1;
+    const patch = new THREE.Mesh(new THREE.SphereGeometry(hr * 1.012, 32, 24, Math.PI / 2 - w / 2, w, Math.PI / 2 - h / 2 - 0.08, h),
+      new THREE.MeshStandardMaterial({ map: o.photo, transparent: true, roughness: 0.65, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    patch.scale.set(B.headScale[0], B.headScale[1], B.headScale[2]); patch.renderOrder = 2; head.add(patch);
+  }
+  for (const s of (o.photo ? [] : [-1, 1])) {
     const e = new THREE.Group(); e.position.set(s * hr * 0.37, hr * 0.1 * B.headScale[1], fz * 0.84); head.add(e);
     const er = hr * B.eye;
     e.add(mk(SPH, MAT.eye, 0, 0, 0, er, er * 1.08, er * 0.75, false));
@@ -149,14 +156,14 @@ export function makeHuman(o = {}) {
   }
   // Nose and mouth.
   const nose = mk(SPH, new THREE.MeshStandardMaterial({ color: new THREE.Color(o.skin || '#653a24').offsetHSL(0.01, 0.05, o.kind === 'man' ? 0.06 : 0.03), roughness: 0.45 }), 0, -hr * 0.12, fz * 0.98, hr * B.nose, hr * B.nose * (o.kind === 'man' ? 1.05 : 0.8), hr * B.nose * (o.kind === 'man' ? 1.25 : 0.85));
-  head.add(nose);
+  if (!o.photo) head.add(nose);
   const lipMat = new THREE.MeshStandardMaterial({ color: o.lips || '#7a3b33', roughness: o.lips && o.lips !== '#7a3b33' ? 0.2 : 0.6 });
   const mouth = new THREE.Mesh(new THREE.TorusGeometry(hr * 0.2, hr * 0.035, 6, 16, Math.PI), lipMat);
-  mouth.position.set(0, -hr * 0.42 * B.headScale[1], fz * 0.86); mouth.rotation.z = Math.PI; mouth.scale.z = 0.6; head.add(mouth);
+  mouth.position.set(0, -hr * 0.42 * B.headScale[1], fz * 0.86); mouth.rotation.z = Math.PI; mouth.scale.z = 0.6; if (!o.photo) head.add(mouth);
   // Face looks.
-  if (o.face === 'blush' || o.face === 'glitter') for (const s of [-1, 1]) head.add(mk(SPH, MAT.blush, s * hr * 0.55, -hr * 0.25, fz * 0.78, hr * 0.16, hr * 0.1, hr * 0.06, false));
-  if (o.face === 'freckles') for (let i = 0; i < 10; i++) { const s = i % 2 ? 1 : -1; head.add(mk(SPH, MAT.freckle, s * hr * (0.3 + (i % 5) * 0.06), -hr * (0.12 + (i % 3) * 0.06), fz * 0.92, hr * 0.018, hr * 0.018, hr * 0.01, false)); }
-  if (o.face === 'uli') { for (const s of [-1, 1]) for (let i = 0; i < 4; i++) head.add(mk(SPH, MAT.uli, s * hr * (0.28 + i * 0.1), -hr * 0.22 - Math.sin(i) * hr * 0.05, fz * 0.9, hr * 0.028, hr * 0.028, hr * 0.012, false)); for (let i = 0; i < 3; i++) head.add(mk(SPH, MAT.uli, (i - 1) * hr * 0.08, hr * 0.55, fz * 0.83, hr * 0.03, hr * 0.03, hr * 0.012, false)); }
+  if (!o.photo && (o.face === 'blush' || o.face === 'glitter')) for (const s of [-1, 1]) head.add(mk(SPH, MAT.blush, s * hr * 0.55, -hr * 0.25, fz * 0.78, hr * 0.16, hr * 0.1, hr * 0.06, false));
+  if (!o.photo && o.face === 'freckles') for (let i = 0; i < 10; i++) { const s = i % 2 ? 1 : -1; head.add(mk(SPH, MAT.freckle, s * hr * (0.3 + (i % 5) * 0.06), -hr * (0.12 + (i % 3) * 0.06), fz * 0.92, hr * 0.018, hr * 0.018, hr * 0.01, false)); }
+  if (!o.photo && o.face === 'uli') { for (const s of [-1, 1]) for (let i = 0; i < 4; i++) head.add(mk(SPH, MAT.uli, s * hr * (0.28 + i * 0.1), -hr * 0.22 - Math.sin(i) * hr * 0.05, fz * 0.9, hr * 0.028, hr * 0.028, hr * 0.012, false)); for (let i = 0; i < 3; i++) head.add(mk(SPH, MAT.uli, (i - 1) * hr * 0.08, hr * 0.55, fz * 0.83, hr * 0.03, hr * 0.03, hr * 0.012, false)); }
   if (o.face === 'glitter') for (const s of [-1, 1]) { const st = mk(new THREE.OctahedronGeometry(1, 0), MAT.glitter, s * hr * 0.62, hr * 0.02, fz * 0.75, hr * 0.06, hr * 0.06, hr * 0.02, false); head.add(st); }
   // Beard and moustache (Papa).
   if (o.beard) {
@@ -347,18 +354,18 @@ export function makeHuman(o = {}) {
 }
 
 // Convenience builders for the cast.
-export function lookToOptions(look, stage = 'child', gender = 'f', weapon = null) {
+export function lookToOptions(look, stage = 'child', gender = 'f', weapon = null, photo = null) {
   const g = slot => lookItem(slot, look[slot]) || LOOK[slot].items[0];
   const bottom = g('bottom'), top = g('top');
   const btype = { overalls: 'overalls', denim: 'denim', wrapper: 'skirt', akwete: 'skirt', bogolan: 'shorts', sokoto: 'trousers', cargo: 'shorts', akwetewrap: 'trousers' }[bottom.id] || 'denim';
   return {
     kind: stage, skin: g('skin').color, hair: g('hair').id, hairColor: g('hairColor').color, acc: g('acc').id,
     top: top.tex ? { tex: top.tex, repeat: [1.5, 1] } : { color: top.color }, bottom: { type: btype, ...(bottom.tex ? { tex: bottom.tex } : { color: bottom.color }) },
-    shoes: g('shoes').color, face: g('face').id, lips: g('lips').color, backpack: true, weapon: weapon || { id: 'staff' }, gender, tunic: top.id === 'buba',
+    shoes: g('shoes').color, face: g('face').id, lips: g('lips').color, backpack: true, weapon: weapon || { id: 'staff' }, photo, gender, tunic: top.id === 'buba',
     gele: g('hair').id === 'gele' ? { color: '#e0a32e' } : null,
   };
 }
-export const makeAmara = (look, stage = 'child', gender = 'f', weapon = null) => makeHuman(lookToOptions(look, stage, gender, weapon));
+export const makeAmara = (look, stage = 'child', gender = 'f', weapon = null, photo = null) => makeHuman(lookToOptions(look, stage, gender, weapon, photo));
 export const makeHeroine = makeAmara;
 export const makePapa = () => makeHuman({ kind: 'man', skin: '#5a3420', hair: 'curlytop', hairColor: '#17110d', beard: true, top: { color: '#2c2a26' }, bottom: { type: 'trousers', color: '#6b4a2e' }, shoes: '#3a2416', hammer: true });
 export const makeGrandma = () => makeHuman({ kind: 'woman', elder: true, skin: '#6a4029', hair: 'short', hairColor: '#cfc8bd', gele: { tex: 'akwete' }, top: { tex: 'akwete', repeat: [2, 1] }, bottom: { type: 'wrapperLong', tex: 'akwete' }, shoes: '#6b4426', glasses: true, cane: true, acc: 'beads' });
