@@ -1,5 +1,7 @@
 # Shellbound: The Sky Feast
 
+> **New AI or developer?** Start with [`START_HERE_AI_HANDOVER.md`](START_HERE_AI_HANDOVER.md).
+
 A real-time 3D adventure for Bukham Play, built around the widely told West African tale of how the tortoise got his cracked shell. The fourth dimension is **time**: at any moment the player can slip between **Now** (the world as it is) and **Story-time** (the world as it was told). Bridges, threads, enemies, lighting and music all change between the two.
 
 Buildless static site, Three.js 0.180.0 vendored locally, WebGL2. No backend.
