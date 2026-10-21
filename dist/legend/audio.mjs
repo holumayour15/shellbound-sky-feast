@@ -317,5 +317,7 @@ export function createAudio() {
     setEnabled(e) { enabled = e; if (ctx) { if (e) { ctx.resume(); nextTime = ctx.currentTime + 0.1; } else ctx.suspend(); } },
     get renderMs() { return renderMs; }, get enabled() { return enabled; }, get ready() { return !!ctx; }, get style() { return style; },
     stop() { if (timer) clearInterval(timer); },
+    // Recording tap (used to capture trailers): a live stream of everything the game plays.
+    tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); master.connect(d); return d.stream; },
   };
 }

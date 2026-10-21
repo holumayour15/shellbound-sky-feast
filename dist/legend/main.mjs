@@ -1823,6 +1823,7 @@ function bindUI() {
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
+  if (window.__shellbound?.paused) return; // trailer recording drives frames itself
   simulate(dt);
   composer.render();
 }
@@ -2435,6 +2436,7 @@ window.__shellbound = {
   teleport(x, z, y) { P.x = x; P.z = z; P.y = y ?? heightAt(x, z) + 1; P.vy = 0; snapCamera(); },
   grant(n) { S.feathers = n; S.cowries += 200; if (!atLeast('market')) { S.quest = 'market'; mbe.show(); } updateAbilities(); },
   setQuest(q) { S.quest = q; updateAbilities(); const qq = QUEST[qi(q)]; $('quest').textContent = qq.title; },
+  render: () => composer.render(), get renderer() { return renderer; }, get P() { return P; }, get amara() { return amara; }, get friendsMap() { return friends; },
   weave: () => doWeave(), get hw() { return HW; }, fishTap: () => fishTap(), cookTap: () => cookTap(), get fishingState() { return fishing; }, get cookingState() { return cooking; }, worldAvatars,
   attack: () => { if (weapon().kind === 'spin') { pressed.add('ShiftLeft'); } else attack(); }, equip: id => { if (!S.weapons.includes(id)) S.weapons.push(id); equip(id); }, spawn: (k, x, z) => enemies.spawn(k, x, z), get pebbles() { return pebbles.length; }, get social() { return social; },
   chat(text, channel = 'near') { CHAT.channel = channel; sendChat(text); return CHAT.logs[channel].slice(-3); }, get friends() { return friends; }, get online() { return friendOnline; },
