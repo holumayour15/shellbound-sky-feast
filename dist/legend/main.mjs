@@ -1457,7 +1457,12 @@ function showTitle() {
   mode = 'title'; $('title').hidden = false; $('hud').hidden = true; $('select').hidden = true; $('wardrobe').hidden = true;
   const s = loadGame();
   $('btnContinue').hidden = !s;
-  if (s) $('continueInfo').textContent = `${s.name} · ${QUEST[questIndex(s.quest)].title} · ${fmt(s.elapsed)}`;
+  if (s) $('continueInfo').textContent = `${s.name} · ${STAGES[stageIndex(s.stage)].name} · ${QUEST[questIndex(s.quest)].title} · ${fmt(s.elapsed)}`;
+  // With a saved adventure, Continue is the big gold button and comes first.
+  const cont = $('btnContinue'), fresh = $('btnNew');
+  cont.className = s ? 'btn gold big' : 'btn big'; fresh.className = s ? 'btn' : 'btn gold big';
+  fresh.firstChild.textContent = s ? 'New adventure ' : 'Begin the tale ';
+  if (s) cont.parentNode.insertBefore(cont, fresh); else fresh.parentNode.insertBefore(fresh, cont);
   P.x = L.START.x; P.z = L.START.z; P.y = heightAt(P.x, P.z); P.face = Math.PI;
   amara.root.visible = true; amara.root.position.set(P.x, P.y, P.z); amara.root.rotation.y = 0.3;
   papa.place(P.x + 1.3, P.z + 0.4, heightAt(P.x + 1.3, P.z + 0.4)); papa.S.face = -0.2; papa.S.mode = 'wait'; audio.setScene({ victory: false, zone: 'village' }); closeChat();
@@ -1553,6 +1558,7 @@ function beginNew() {
 }
 
 function startGame(isNew) {
+  try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   diff = DIFFICULTY[stageDiffKey()];
   enemies.list.forEach(e => { W.scene.remove(e.v.g || e.v.root); });
   enemies = createEnemies(W.scene, diff); boss.reset(); W.scene.remove(boss.B.model.root); W.scene.remove(boss.B.shield);
@@ -1580,17 +1586,34 @@ function startGame(isNew) {
   amara.root.visible = true;
   respawn();
   applyStageRules();
+  if (isNew) safeSpot = null;
   if (isNew === 'restart') {
     const G = L.NPCS.grandma; P.x = G.x + 1.5; P.z = G.z + 3.2; P.y = heightAt(P.x, P.z); P.inv = 2; P.face = Math.atan2(G.x - P.x, G.z - P.z);
     if (stageId() === 'child') papa.place(P.x + 1.5, P.z + 1.2, heightAt(P.x + 1.5, P.z + 1.2));
     snapCamera(); enterPlay(); updateHUD(); setTimeout(() => grandmaLesson(S.lesson), 700);
   } else if (isNew) { P.x = L.START.x; P.z = L.START.z; P.y = heightAt(P.x, P.z); P.inv = 0; papa.place(P.x + 1.5, P.z + 1.2, heightAt(P.x + 1.5, P.z + 1.2)); startIntro(); }
-  else { enterPlay(); toast(`Welcome back, <b>${esc(S.name)}</b>`); if (S.lesson) setTimeout(() => grandmaLesson(S.lesson), 1200); }
+  else {
+    const resumed = resumeSpot();
+    enterPlay(); toast(`Welcome back, <b>${esc(S.name)}</b>! ${resumed ? 'You’re right where you left off.' : 'You’re back at your last story drum.'}`, 3.5);
+    if (S.lesson) setTimeout(() => grandmaLesson(S.lesson), 1200);
+  }
   riding = false; bikeModel && W.scene.remove(bikeModel.root); bikeModel = null; bikeRace = null; fishing = null; cooking = null; $('hobbyUI').hidden = true;
   const day = dayNumber(); if (S.today?.day !== day) S.today = { day };
   const gift = dailyGift(S.daily, day);
   if (gift) { S.daily = { day: gift.day, streak: gift.streak }; setTimeout(() => { giveCoins(gift.coins); audio.play('buy'); toast(`🎁 Daily gift: <b>+${gift.coins} cowries</b> · day ${gift.streak} streak${gift.streak < 7 ? ' — come back tomorrow for more!' : '!'}`, 5); persist(); }, isNew ? 26000 : 1500); }
   persist();
+}
+function resumeSpot() {
+  const p = S.pos; if (!p) return false;
+  if (p.layer === 'story' && env.abilities.weave) { layer = 'story'; weave = 1; refreshActive(); audio.setWeave(1); $('weaveDial').classList.add('story'); setText($('weaveLabel'), 'STORY-TIME'); }
+  const ground = surfaceBelow(env, p.x, p.z, p.y + 1.5);
+  if (!ground || !Number.isFinite(ground.y) || Math.abs(ground.y - p.y) > 2.5 || ground.y < WATER_Y + 0.1) return false;
+  Object.assign(P, { x: p.x, y: ground.y + 0.05, z: p.z, vx: 0, vy: 0, vz: 0, face: p.face, inv: 1.5, grounded: true });
+  safeSpot = { ...p };
+  const side = (x, z) => surfaceBelow(env, x, z, P.y + 1.5).y;
+  if (papa.S.mode === 'follow') papa.place(P.x + 1.5, P.z + 1.2, side(P.x + 1.5, P.z + 1.2));
+  cam.yaw = p.face + Math.PI; snapCamera();
+  return true;
 }
 function enterPlay() { mode = 'play'; $('hud').hidden = false; $('touch').hidden = !isTouch; $('rotateHint').hidden = !isTouch; document.body.classList.toggle('touch-on', isTouch); updateHint(); canvas.focus(); }
 function updateHint() {
@@ -1598,7 +1621,18 @@ function updateHint() {
   $('hint').innerHTML = gp ? 'Ⓐ jump · Ⓧ spin · Ⓑ talk/act · Ⓨ weave · LB throw Mbe · RB sniff · ↓ eat · ↑ Papa · Start menu'
     : '<kbd>WASD</kbd>move <kbd>Space</kbd>jump <kbd>Shift</kbd>attack <kbd>X</kbd>bike <kbd>Z</kbd>emote <kbd>Y</kbd>hobbies <kbd>E</kbd>talk / act <kbd>R</kbd>throw Mbe <kbd>G</kbd>sniff <kbd>Q</kbd>weave<br><kbd>H</kbd>eat <kbd>B</kbd>bag <kbd>C</kbd>Papa <kbd>V</kbd>call friend <kbd>Enter</kbd>chat <kbd>F</kbd>dance <kbd>P</kbd>photo <kbd>T</kbd>tales <kbd>Esc</kbd>menu';
 }
-function persist() { if (S && mode !== 'title' && mode !== 'select') saveGame(S); }
+// Saving: the last safe spot the hero stood on is stored with the save, so returning players resume right there.
+let safeSpot = null;
+function trackSafeSpot() {
+  if (!P.grounded || P.inv > 1 || race.on || bikeRace || P.y < WATER_Y + 0.1 || S.quest === 'boss') return;
+  safeSpot = { x: +P.x.toFixed(2), y: +P.y.toFixed(2), z: +P.z.toFixed(2), face: +P.face.toFixed(2), layer };
+}
+function persist() {
+  if (!S || mode === 'title' || mode === 'select' || mode === 'loading' || mode === 'intro') return;
+  if (safeSpot) S.pos = safeSpot;
+  S.savedAt = Date.now();
+  if (!saveGame(S) && !persist.warned) { persist.warned = true; toast('Your progress can’t be saved in this browser (private mode?). Use a normal browser tab to keep your adventure.', 6); }
+}
 
 // ---------------- Panels ----------------
 const panel = $('panel');
@@ -1749,7 +1783,15 @@ function wear(id) {
 
 // ---------------- UI wiring ----------------
 function bindUI() {
-  $('btnNew').onclick = () => { audio.init(); audio.play('ui'); showSelect(); };
+  $('btnNew').onclick = () => {
+    audio.init(); audio.play('ui');
+    const s = loadGame(); if (!s) return showSelect();
+    openPanel('NEW ADVENTURE', `<h2>Start a new adventure?</h2><p>This replaces <b>${esc(s.name)}</b>’s saved adventure (${esc(QUEST[questIndex(s.quest)].title)}, ${fmt(s.elapsed)} played) on this device. Your friends list and selfie are kept.</p>
+      <div class="p-actions"><button class="btn gold" id="ncKeep">Keep playing ${esc(s.name)}</button><button class="btn" id="ncNew">Start a new adventure</button></div>`, () => {
+      $('ncKeep').onclick = () => { closePanel(); S = loadGame(); startGame(false); };
+      $('ncNew').onclick = () => { closePanel(); showSelect(); };
+    });
+  };
   $('btnContinue').onclick = () => { audio.init(); const s = loadGame(); if (!s) return; S = s; startGame(false); };
   $('btnBoard').onclick = () => openBoard(); $('btnSettings').onclick = openSettings; $('btnHelp').onclick = openHelp;
   $('selBack').onclick = () => { audio.play('ui'); showTitle(); };
@@ -1773,7 +1815,7 @@ function bindUI() {
   $('chatSmart').addEventListener('change', e => { settings.smartChat = e.target.checked; saveSettings(settings); });
   initOnline();
   $('bMusic').onclick = () => { audio.init(); audio.setEnabled(!audio.enabled); $('bMusic').style.opacity = audio.enabled ? 1 : 0.4; };
-  addEventListener('pagehide', persist);
+  addEventListener('pagehide', persist); addEventListener('beforeunload', persist); document.addEventListener('freeze', persist);
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
 }
 
@@ -1788,6 +1830,7 @@ function simulate(dt) {
   time += dt; frameDt = dt;
   pollPad();
   if (mode === 'intro' && pressed.size) skipIntro(); // keyboard or controller
+  if (S && !['title', 'select', 'loading', 'intro'].includes(mode)) { autoSaveT += dt; if (autoSaveT > 5) { autoSaveT = 0; persist(); } }
   if (S && S.cowries > lastCow) S.earned += S.cowries - lastCow; if (S) lastCow = S.cowries;
   if (mode === 'play') playStep(dt);
   else if (mode === 'dialogue') {
@@ -2205,8 +2248,8 @@ function updateCompanions(dt) {
 }
 
 function playStep(dt) {
-  S.elapsed += dt; autoSaveT += dt; comboT = Math.max(0, comboT - dt);
-  if (autoSaveT > 8) { autoSaveT = 0; persist(); }
+  S.elapsed += dt; comboT = Math.max(0, comboT - dt);
+  trackSafeSpot();
   if (hit('Escape', 'KeyM')) return openPause();
   if (hit('KeyT')) return openTales();
   if (hit('KeyB')) return openBag();

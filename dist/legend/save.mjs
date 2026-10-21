@@ -28,7 +28,7 @@ export function freshSave(opts = {}) {
     weapon: 'staff', weapons: ['none', 'staff'], cowries: 0, earned: STAGES.find(st => st.id === stage).earn, stage, grown: stage,
     job: null, jobsDone: 0, picked: [], threads: [], tales: [], dug: [], chests: [], errands: [],
     puzzles: [], quest: 'meet', feathers: 0, checkpoint: 0, elapsed: 0, deaths: 0, enemies: 0, raceBest: 0,
-    startStage: stage, restarts: 0, lesson: null, papaFights: true,
+    startStage: stage, restarts: 0, lesson: null, papaFights: true, pos: null, savedAt: 0,
     hobby: { fish: 0, cook: 0, bike: 0 }, catches: {}, cooked: 0, dishes: [], bike: null, bikeBest: 0, badges: [], waves: 0, daily: null, today: { day: 0 } };
 }
 export const cleanName = n => (isStr(n) ? n.replace(/[^\p{L}\p{N} '.-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 14) : '') || 'Shellbound';
@@ -61,6 +61,10 @@ export function sanitize(raw) {
     elapsed: num(raw.elapsed, 0, 1e7, 0), deaths: Math.round(num(raw.deaths, 0, 1e5, 0)),
     enemies: Math.round(num(raw.enemies, 0, 1e5, 0)), raceBest: num(raw.raceBest, 0, 999, 0),
     startStage: STAGES.some(st => st.id === raw.startStage) ? raw.startStage : raw.startStage === undefined ? stage : 'child', restarts: Math.round(num(raw.restarts, 0, 1e5, 0)), lesson: null, papaFights: raw.papaFights !== false,
+    // Where the hero stood when the game was last saved, so a returning player resumes on the spot.
+    pos: raw.pos && [raw.pos.x, raw.pos.y, raw.pos.z].every(Number.isFinite) && Math.abs(raw.pos.x) < 200 && raw.pos.z > -440 && raw.pos.z < 100 && raw.pos.y > -20 && raw.pos.y < 120
+      ? { x: raw.pos.x, y: raw.pos.y, z: raw.pos.z, face: num(raw.pos.face, -10, 10, 0), layer: raw.pos.layer === 'story' ? 'story' : 'now' } : null,
+    savedAt: num(raw.savedAt, 0, 1e13, 0),
     hobby: Object.fromEntries(['fish', 'cook', 'bike'].map(k => [k, Math.round(num(raw.hobby?.[k], 0, 1e6, 0))])),
     catches: Object.fromEntries(FISH.map(f => [f.id, Math.round(num(raw.catches?.[f.id], 0, 1e5, 0))]).filter(([, n]) => n)),
     cooked: Math.round(num(raw.cooked, 0, 1e5, 0)), dishes: strList(raw.dishes, 10).filter(id => DISHES.some(d => d.id === id)),

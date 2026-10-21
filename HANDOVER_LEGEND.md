@@ -154,3 +154,14 @@ Fish and dishes sell at a new Sell tab in Mama Nkem's stall. The prizes are a st
 - **Opt-out:** online play can be switched off in Settings (`settings.playOnline`). The Friends tab notes that peers can see each other's internet address. Inside Claude the game still uses Claude's room.
 
 **Verified:** in Chromium with two separate players (localhost and 127.0.0.1, so each had its own storage and key): both connected and verified within seconds; each saw the other's avatar and name; a friend request was accepted; chat and a high-five arrived. Real phones on mobile networks were not tested. Without a TURN relay, some carrier networks may block direct connections.
+
+## 15. Iteration 11 — come back where you left off (21 October 2026)
+
+**Problem:** progress was saved, but Continue put the hero back at the last story drum — usually the very first spot in the village — so returning players felt they had started over. "Begin the tale" was also the big gold button, making it easy to overwrite an adventure by accident, and saves only happened while walking around.
+
+**Change:**
+- **Resume on the spot:** the last safe spot the hero stood on (grounded, not in water, not mid-race or in the boss fight) is saved as `pos` with the layer, and Continue puts the hero back there. If that spot is no longer safe, the hero starts at the last story drum, and the welcome message says which happened.
+- **Saving:** autosave every 5 s in every in-game mode (dialogue, fishing, cooking and so on), plus on `pagehide`, `beforeunload`, `freeze` and hidden tabs. The game asks the browser for persistent storage, and warns once if the browser refuses to save (private mode).
+- **Title screen:** with a saved adventure, Continue is the gold button and comes first, and shows the hero's name, age, quest and time played. "New adventure" asks for confirmation before replacing the save.
+
+**Verified:** `npm test` passes (40 checks). In Chromium: a hero moved to the north path, the page was reloaded, Continue was the gold button, and the hero resumed at the same spot on the same quest. "New adventure" showed the warning, and "Keep playing" resumed the save.

@@ -331,6 +331,14 @@ check('a restarted story remembers the starting age and how many times it was re
   const f = freshSave({ stage: 'teen' }); assert.equal(f.startStage, 'teen'); assert.equal(f.restarts, 0);
   const s = sanitize({ ...f, restarts: 3, startStage: 'wizard', lesson: 'brute' }); assert.equal(s.restarts, 3); assert.equal(s.startStage, 'child'); assert.equal(s.lesson, null);
 });
+check('a save remembers where the hero stood, and rejects impossible spots', () => {
+  const f = freshSave({ name: 'Zara' });
+  const ok = sanitize({ ...f, quest: 'weaver', pos: { x: -22, y: 1.36, z: -45, face: 3.1, layer: 'story' } });
+  assert.deepEqual(ok.pos, { x: -22, y: 1.36, z: -45, face: 3.1, layer: 'story' }); assert.equal(ok.quest, 'weaver');
+  assert.equal(sanitize({ ...f, pos: { x: 9999, y: 0, z: 0 } }).pos, null);
+  assert.equal(sanitize({ ...f, pos: { x: 'a', y: 0, z: 0 } }).pos, null);
+  assert.equal(sanitize({ ...f, pos: { x: 1, y: 0, z: 2, layer: '<x>' } }).pos.layer, 'now');
+});
 check('content tables are complete', () => {
   assert.equal(TALES.length, 6); assert.equal(L.TALE_STONES.length, 6); assert.equal(L.THREADS.length, 5); assert.equal(L.RINGS.length, 8);
   assert.ok(QUEST.some(q => q.id === 'market') && QUEST.some(q => q.id === 'soup'));
